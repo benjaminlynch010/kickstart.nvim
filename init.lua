@@ -99,13 +99,14 @@ vim.g.have_nerd_font = false
 --  For more options, you can see `:help option-list`
 
 -- Make line numbers default
-vim.opt.number = true
--- You can also add relative line numbers, to help with jumping.
---  Experiment for yourself to see if you like it!
--- vim.opt.relativenumber = true
+vim.opt.nu = true
+-- Use relative line numbers
+vim.opt.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
+
+vim.opt.guicursor = ''
 
 -- Don't show the mode, since it's already in the status line
 vim.opt.showmode = false
@@ -121,9 +122,6 @@ end)
 -- Enable break indent
 vim.opt.breakindent = true
 
--- Save undo history
-vim.opt.undofile = true
-
 -- Case-insensitive searching UNLESS \C or one or more capital letters in the search term
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
@@ -132,7 +130,7 @@ vim.opt.smartcase = true
 vim.opt.signcolumn = 'yes'
 
 -- Decrease update time
-vim.opt.updatetime = 250
+vim.opt.updatetime = 50
 
 -- Decrease mapped sequence wait time
 -- Displays which-key popup sooner
@@ -157,6 +155,41 @@ vim.opt.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.opt.scrolloff = 10
 
+vim.opt.tabstop = 4
+vim.opt.softtabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.expandtab = true
+vim.opt.smartindent = true
+
+vim.opt.wrap = false
+
+-- Disable swapfile creation to avoid cluttering directories
+vim.opt.swapfile = false
+
+-- Don't create backup files (~file.txt)
+vim.opt.backup = false
+
+-- Set directory for persistent undo history
+vim.opt.undodir = os.getenv 'HOME' .. '/.vim/undodir'
+
+-- Enable persistent undo across sessions
+vim.opt.undofile = true
+
+-- Allows @ in filenames
+vim.opt.isfname:append '@-@'
+
+-- Enable 24-bit colors for modern terminals
+vim.opt.termguicolors = true
+
+-- Keep 8 lines visible above/below cursor while scrolling
+vim.opt.scrolloff = 8
+
+-- Show sign column for git/diagnostics markers
+vim.opt.signcolumn = 'yes'
+
+-- Display vertical line at column 80 as code width guide
+vim.opt.colorcolumn = '80'
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -176,10 +209,10 @@ vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagn
 vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
 -- TIP: Disable arrow keys in normal mode
--- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
--- vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
--- vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
--- vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
+vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
+vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
+vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
+vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
 
 -- Keybinds to make split navigation easier.
 --  Use CTRL+<hjkl> to switch between windows
@@ -839,19 +872,119 @@ require('lazy').setup({
     -- change the command in the config to whatever the name of that colorscheme is.
     --
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'folke/tokyonight.nvim',
-    priority = 1000, -- Make sure to load this before all the other start plugins.
-    init = function()
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
-
-      -- You can configure highlights by doing something like:
-      vim.cmd.hi 'Comment gui=none'
+    'rose-pine/neovim',
+    priority = 1000,
+    config = function()
+      require('rose-pine').setup {
+        variant = 'moon',
+        dark_variant = 'moon',
+        dim_inactive_windows = false,
+        extend_background_behind_borders = true,
+        enable = {
+          terminal = true,
+          legacy_highlights = true,
+          migrations = true,
+        },
+        styles = {
+          bold = true,
+          italic = false,
+          transparency = false,
+        },
+        groups = {
+          border = 'muted',
+          link = 'iris',
+          panel = 'surface',
+          error = 'love',
+          hint = 'iris',
+          info = 'foam',
+          note = 'pine',
+          todo = 'rose',
+          warn = 'gold',
+          git_add = 'foam',
+          git_change = 'rose',
+          git_delete = 'love',
+          git_dirty = 'rose',
+          git_ignore = 'muted',
+          git_merge = 'iris',
+          git_rename = 'pine',
+          git_stage = 'iris',
+          git_text = 'rose',
+          git_untracked = 'subtle',
+          h1 = 'iris',
+          h2 = 'foam',
+          h3 = 'rose',
+          h4 = 'gold',
+          h5 = 'pine',
+          h6 = 'foam',
+        },
+        palette = {},
+        highlight_groups = {},
+        before_highlight = function(group, highlight, palette) end,
+      }
+      vim.cmd 'colorscheme rose-pine'
     end,
   },
 
+  -- roseline bar
+  {
+    {
+      'maxmx03/roseline',
+      opts = {},
+      dependencies = {
+        'rose-pine/neovim',
+      },
+    },
+  },
+  -- trouble.nvim
+  {
+    'folke/trouble.nvim',
+    opts = {}, -- for default options, refer to the configuration section for custom setup.
+    cmd = 'Trouble',
+    keys = {
+      {
+        '<leader>xx',
+        '<cmd>Trouble diagnostics toggle<cr>',
+        desc = 'Diagnostics (Trouble)',
+      },
+      {
+        '<leader>xX',
+        '<cmd>Trouble diagnostics toggle filter.buf=0<cr>',
+        desc = 'Buffer Diagnostics (Trouble)',
+      },
+      {
+        '<leader>cs',
+        '<cmd>Trouble symbols toggle focus=false<cr>',
+        desc = 'Symbols (Trouble)',
+      },
+      {
+        '<leader>cl',
+        '<cmd>Trouble lsp toggle focus=false win.position=right<cr>',
+        desc = 'LSP Definitions / references / ... (Trouble)',
+      },
+      {
+        '<leader>xL',
+        '<cmd>Trouble loclist toggle<cr>',
+        desc = 'Location List (Trouble)',
+      },
+      {
+        '<leader>xQ',
+        '<cmd>Trouble qflist toggle<cr>',
+        desc = 'Quickfix List (Trouble)',
+      },
+    },
+  },
+  -- oil.nvim
+  {
+    'stevearc/oil.nvim',
+    ---@module 'oil'
+    ---@type oil.SetupOpts
+    opts = {},
+    -- Optional dependencies
+    dependencies = { { 'echasnovski/mini.icons', opts = {} } },
+    -- dependencies = { "nvim-tree/nvim-web-devicons" }, -- use if you prefer nvim-web-devicons
+    -- Lazy loading is not recommended because it is very tricky to make it work correctly in all situations.
+    lazy = false,
+  },
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
 
