@@ -102,7 +102,7 @@ vim.g.have_nerd_font = false
 vim.o.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.o.relativenumber = true
+vim.o.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
@@ -165,7 +165,7 @@ vim.o.scrolloff = 10
 vim.opt.tabstop = 4
 vim.opt.softtabstop = 4
 vim.opt.shiftwidth = 4
-vim.opt.expandtab = true
+vim.opt.expandtab = false
 vim.opt.smartindent = true
 
 vim.opt.wrap = false
@@ -699,6 +699,14 @@ require('lazy').setup({
         },
       }
 
+      -- Limit LSP log verbosity. The default is DEBUG which causes the log at
+      -- ~/.local/state/nvim/lsp.log to grow unboundedly (especially with
+      -- rust-analyzer, which emits thousands of WARN/stderr lines per second
+      -- when it hits cross-workspace resolution issues). WARN captures real
+      -- problems without the noise. Change to "ERROR" for even less output,
+      -- or "DEBUG" temporarily when diagnosing LSP issues.
+      vim.lsp.set_log_level 'WARN'
+
       -- LSP servers and clients are able to communicate to each other what features they support.
       --  By default, Neovim doesn't support everything that is in the LSP specification.
       --  When you add blink.cmp, luasnip, etc. Neovim now has *more* capabilities.
@@ -718,7 +726,8 @@ require('lazy').setup({
         -- clangd = {},
         -- gopls = {},
         -- pyright = {},
-        -- rust_analyzer = {},
+        -- rust_analyzer is configured explicitly below rather than left to Mason's
+        -- auto-handler, so that we can scope it to avoid indexing the entire monorepo.
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -727,6 +736,34 @@ require('lazy').setup({
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
         --
+
+        rust_analyzer = {
+          settings = {
+            ['rust-analyzer'] = {
+              files = {
+                -- Exclude directories that should not be indexed. Mirrors
+                -- the project-level .rust-analyzer.toml. Keeping both in
+                -- sync ensures RA respects the exclusions regardless of
+                -- which config source it reads first.
+                excludeDirs = {
+                  'backend/services/pbac/pbac_workspace/target',
+                  'archive',
+                  'funcytown',
+                  'node_modules',
+                  '.git',
+                },
+              },
+              cargo = {
+                -- Skip build script execution during indexing. This prevents
+                -- RA from running proc-macro builds at startup, which is a
+                -- common cause of hangs and high CPU in large workspaces.
+                buildScripts = { enable = false },
+              },
+              -- Disable proc-macro expansion for the same reason.
+              procMacro = { enable = false },
+            },
+          },
+        },
 
         lua_ls = {
           -- cmd = { ... },
@@ -919,69 +956,28 @@ require('lazy').setup({
       signature = { enabled = true },
     },
   },
-
-  { -- You can easily change to a different colorscheme.
+  {
+    -- You can easily change to a different colorscheme.
     -- Change the name of the colorscheme plugin below, and then
     -- change the command in the config to whatever the name of that colorscheme is.
     --
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'rose-pine/neovim',
-    priority = 1000,
-    config = function()
-      require('rose-pine').setup {
-        variant = 'moon',
-        dark_variant = 'moon',
-        dim_inactive_windows = false,
-        extend_background_behind_borders = true,
-        enable = {
-          terminal = true,
-          legacy_highlights = true,
-          migrations = true,
-        },
-        styles = {
-          bold = true,
-          italic = false,
-          transparency = false,
-        },
-        groups = {
-          border = 'muted',
-          link = 'iris',
-          panel = 'surface',
-          error = 'love',
-          hint = 'iris',
-          info = 'foam',
-          note = 'pine',
-          todo = 'rose',
-          warn = 'gold',
-          git_add = 'foam',
-          git_change = 'rose',
-          git_delete = 'love',
-          git_dirty = 'rose',
-          git_ignore = 'muted',
-          git_merge = 'iris',
-          git_rename = 'pine',
-          git_stage = 'iris',
-          git_text = 'rose',
-          git_untracked = 'subtle',
-          h1 = 'iris',
-          h2 = 'foam',
-          h3 = 'rose',
-          h4 = 'gold',
-          h5 = 'pine',
-          h6 = 'foam',
-        },
-        palette = {},
-        highlight_groups = {},
-        before_highlight = function(group, highlight, palette) end,
-      }
-      vim.cmd 'colorscheme rose-pine'
-    end,
-  },
-  {
     'folke/tokyonight.nvim',
-    lazy = false,
-    priority = 1000,
-    opts = {},
+    priority = 1000, -- Make sure to load this before all the other start plugins.
+    config = function()
+      ---@diagnostic disable-next-line: missing-fields
+      require('tokyonight').setup {
+        styles = {
+          comments = { italic = false }, -- Disable italics in comments
+          keywords = { italic = false },
+        },
+      }
+
+      -- Load the colorscheme here.
+      -- Like many other themes, this one has different styles, and you could load
+      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
+      vim.cmd.colorscheme 'tokyonight-night'
+    end,
   },
   -- trouble.nvim
   {
@@ -1134,17 +1130,17 @@ require('lazy').setup({
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
   require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
-  -- require 'kickstart.plugins.lint',
-  -- require 'kickstart.plugins.autopairs',
+  require 'kickstart.plugins.indent_line',
+  require 'kickstart.plugins.lint',
+  require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- { import = 'custom.plugins' },
+  { import = 'custom.plugins' },
   --
   -- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`
   -- Or use telescope!
